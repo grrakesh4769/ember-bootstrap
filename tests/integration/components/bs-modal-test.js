@@ -1,90 +1,93 @@
 import Component from '@ember/component';
-import { find, findAll, click } from 'ember-native-dom-helpers';
-import { moduleForComponent } from 'ember-qunit';
-import { test, visibilityClass } from '../../helpers/bootstrap-test';
+import { module } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render, click } from '@ember/test-helpers';
+import { test } from '../../helpers/bootstrap-test';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('bs-modal', 'Integration | Component | bs-modal', {
-  integration: true
-});
+module('Integration | Component | bs-modal', function(hooks) {
+  setupRenderingTest(hooks);
 
-const transitionTimeout = 500;
+  hooks.beforeEach(function() {
+    this.actions = {};
+    this.send = (actionName, ...args) => this.actions[actionName].apply(this, args);
+  });
 
-test('Modal yields header, footer and body components', function(assert) {
-  this.render(hbs`{{#bs-modal as |modal|}}
-    {{modal.header title="Dialog"}}
-    {{#modal.body}}Hello world!{{/modal.body}}
-    {{modal.footer}}
-  {{/bs-modal}}`);
+  test('Modal yields header, footer and body components', async function(assert) {
+    await render(hbs`{{#bs-modal as |modal|}}
+      {{modal.header title="Dialog"}}
+      {{#modal.body}}Hello world!{{/modal.body}}
+      {{modal.footer}}
+    {{/bs-modal}}`);
 
-  assert.equal(findAll('.modal').length, 1, 'Modal exists.');
-  assert.equal(findAll('.modal .modal-header').length, 1, 'Modal has header.');
-  assert.equal(find('.modal .modal-header .modal-title').textContent.trim(), 'Dialog', 'Modal header has correct title.');
-  assert.equal(findAll('.modal .modal-footer').length, 1, 'Modal has footer.');
-  assert.equal(findAll('.modal .modal-footer button').length, 1, 'Modal has button in footer.');
-  assert.equal(find('.modal .modal-footer button').textContent.trim(), 'Ok', 'Modal button has default title.');
-  assert.equal(findAll('.modal .modal-body').length, 1, 'Modal has body.');
-  assert.equal(find('.modal .modal-body').textContent.trim(), 'Hello world!', 'Modal body has correct content.');
-});
+    assert.dom('.modal').exists({ count: 1 }, 'Modal exists.');
+    assert.dom('.modal .modal-header').exists({ count: 1 }, 'Modal has header.');
+    assert.dom('.modal .modal-header .modal-title').hasText('Dialog', 'Modal header has correct title.');
+    assert.dom('.modal .modal-footer').exists({ count: 1 }, 'Modal has footer.');
+    assert.dom('.modal .modal-footer button').exists({ count: 1 }, 'Modal has button in footer.');
+    assert.dom('.modal .modal-footer button').hasText('Ok', 'Modal button has default title.');
+    assert.dom('.modal .modal-body').exists({ count: 1 }, 'Modal has body.');
+    assert.dom('.modal .modal-body').hasText('Hello world!', 'Modal body has correct content.');
+  });
 
-test('clicking ok button closes modal when autoClose=true with custom component hierarchy', function(assert) {
-  this.register('component:my-component', Component.extend({
-    layout: hbs`{{yield}}`
-  }));
+  test('Hidden modal does not render', async function(assert) {
+    await render(hbs`{{#bs-modal open=false as |modal|}}
+      {{modal.header title="Dialog"}}
+      {{#modal.body}}Hello world!{{/modal.body}}
+      {{modal.footer}}
+    {{/bs-modal}}`);
 
-  this.render(hbs`
-    {{#bs-modal title="Simple Dialog" body=false footer=false as |modal|}}
-      {{#my-component}}
-        {{#modal.body}}Hello world!{{/modal.body}}
-        {{modal.footer}}
-      {{/my-component}}
-    {{/bs-modal}}
-    
-  `);
+    assert.dom('.modal *').doesNotExist('Modal does not exist.');
+  });
 
-  let done = assert.async();
+  test('clicking ok button closes modal when autoClose=true with custom component hierarchy', async function(assert) {
+    this.owner.register('component:my-component', Component.extend({
+      layout: hbs`{{yield}}`
+    }));
 
-  // wait for fade animation
-  setTimeout(async() => {
-    assert.equal(find('.modal').classList.contains(visibilityClass()), true, 'Modal is visible');
+    await render(hbs`
+      {{#bs-modal title="Simple Dialog" body=false footer=false as |modal|}}
+        {{#my-component}}
+          {{#modal.body}}Hello world!{{/modal.body}}
+          {{modal.footer}}
+        {{/my-component}}
+      {{/bs-modal}}
+      
+    `);
+
     await click('.modal .modal-footer button');
+    assert.dom('.modal').doesNotExist('Modal is hidden');
+  });
 
-    // wait for fade animation
-    setTimeout(() => {
-      assert.equal(find('.modal').classList.contains(visibilityClass()), false, 'Modal is hidden');
-      done();
-    }, transitionTimeout);
-  }, transitionTimeout);
-});
+  test('Modal yields close action', async function(assert) {
+    let closeAction = this.spy();
+    this.actions.close = closeAction;
 
-test('Modal yields close action', async function(assert) {
-  let closeAction = this.spy();
-  this.on('close', closeAction);
+    await render(hbs`{{#bs-modal onHide=(action "close") as |modal|}}
+      {{modal.header title="Dialog"}}
+      {{#modal.body}}Hello world!{{/modal.body}}
+      {{#modal.footer}}
+        <button id="close" {{action modal.close}}>Close</button>
+      {{/modal.footer}}
+    {{/bs-modal}}`);
 
-  this.render(hbs`{{#bs-modal onHide=(action "close") as |modal|}}
-    {{modal.header title="Dialog"}}
-    {{#modal.body}}Hello world!{{/modal.body}}
-    {{#modal.footer}}
-      <button id="close" {{action modal.close}}>Close</button>
-    {{/modal.footer}}
-  {{/bs-modal}}`);
+    await click('#close');
+    assert.ok(closeAction.calledOnce, 'close action has been called.');
+  });
 
-  await click('#close');
-  assert.ok(closeAction.calledOnce, 'close action has been called.');
-});
+  test('Modal yields submit action', async function(assert) {
+    let submitAction = this.spy();
+    this.actions.submit = submitAction;
 
-test('Modal yields submit action', async function(assert) {
-  let submitAction = this.spy();
-  this.on('submit', submitAction);
+    await render(hbs`{{#bs-modal onSubmit=(action "submit") as |modal|}}
+      {{modal.header title="Dialog"}}
+      {{#modal.body}}Hello world!{{/modal.body}}
+      {{#modal.footer}}
+        <button id="submit" {{action modal.submit}}>Submit</button>
+      {{/modal.footer}}
+    {{/bs-modal}}`);
 
-  this.render(hbs`{{#bs-modal onSubmit=(action "submit") as |modal|}}
-    {{modal.header title="Dialog"}}
-    {{#modal.body}}Hello world!{{/modal.body}}
-    {{#modal.footer}}
-      <button id="submit" {{action modal.submit}}>Submit</button>
-    {{/modal.footer}}
-  {{/bs-modal}}`);
-
-  await click('#submit');
-  assert.ok(submitAction.calledOnce, 'submit action has been called.');
+    await click('#submit');
+    assert.ok(submitAction.calledOnce, 'submit action has been called.');
+  });
 });

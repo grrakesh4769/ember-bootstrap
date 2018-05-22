@@ -1,17 +1,12 @@
-import Ember from 'ember';
-import resolver from './helpers/resolver';
-import {
-  setResolver
-} from 'ember-qunit';
-import { settings } from 'ember-native-dom-helpers';
-import { start } from 'ember-cli-qunit';
-
-setResolver(resolver);
+import Application from '../app';
+import config from '../config/environment';
+import { setApplication } from '@ember/test-helpers';
+import { start } from 'ember-qunit';
+import { Promise as EmberPromise } from 'rsvp';
 
 if (typeof Promise === 'undefined') {
-  window.Promise = Ember.RSVP.Promise;
+  window.Promise = EmberPromise;
 }
 
-// make rootElement of `ember-native-dom-helpers` match `this.$()`, see https://github.com/cibernox/ember-native-dom-helpers/issues/63
-settings.rootElement = '#ember-testing > .ember-view' || settings.rootElement;
+setApplication(Application.create(config.APP));
 start();

@@ -1,16 +1,19 @@
-import { test } from 'qunit';
-import moduleForAcceptance from '../../tests/helpers/module-for-acceptance';
-import { visit, findAll } from 'ember-native-dom-helpers';
+import { visit } from '@ember/test-helpers';
+import { test, module } from 'qunit';
+import { setupApplicationTest } from 'ember-qunit';
 
-moduleForAcceptance('Acceptance | bs-nav-link');
+module('Acceptance | bs-nav-link', function(hooks) {
+  setupApplicationTest(hooks);
 
-test('active link marks nav item as active', async function(assert) {
-  await visit('/acceptance/link/1');
-  assert.ok(findAll('#nav-link-test li')[0].classList.contains('active'));
-  assert.notOk(findAll('#nav-link-test li')[1].classList.contains('active'));
-  assert.ok(findAll('#nav-link-test li')[2].classList.contains('active'));
-  await visit('/acceptance/link/2');
-  assert.notOk(findAll('#nav-link-test li')[0].classList.contains('active'));
-  assert.ok(findAll('#nav-link-test li')[1].classList.contains('active'));
-  assert.ok(findAll('#nav-link-test li')[2].classList.contains('active'));
+  test('active link marks nav item as active', async function(assert) {
+    await visit('/acceptance/link/1');
+    assert.dom(this.element.querySelectorAll('#nav-link-test li')[0]).hasClass('active');
+    assert.dom(this.element.querySelectorAll('#nav-link-test li')[1]).hasNoClass('active');
+    assert.dom(this.element.querySelectorAll('#nav-link-test li')[2]).hasClass('active');
+    await visit('/acceptance/link/2');
+    assert.dom(this.element.querySelectorAll('#nav-link-test li')[0]).hasNoClass('active');
+    assert.dom(this.element.querySelectorAll('#nav-link-test li')[1]).hasClass('active');
+    assert.dom(this.element.querySelectorAll('#nav-link-test li')[2]).hasClass('active');
+  });
+
 });

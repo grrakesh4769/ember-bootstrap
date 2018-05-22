@@ -1,5 +1,12 @@
+import {
+  notEmpty,
+  gt,
+  or,
+  and,
+  equal,
+  alias
+} from '@ember/object/computed';
 import { observer, defineProperty, computed } from '@ember/object';
-import { on } from '@ember/object/evented';
 import { scheduleOnce } from '@ember/runloop';
 import { assert } from '@ember/debug';
 import { typeOf, isBlank } from '@ember/utils';
@@ -275,7 +282,7 @@ const nonDefaultLayouts = A([
  <td></td>
  </tr>
  <tr>
- <td>size</td>
+ <td>size<br>via <code>controlSize</code> property</td>
  <td></td>
  <td></td>
  <td>✔︎</td>
@@ -351,7 +358,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  hasLabel: computed.notEmpty('label'),
+  hasLabel: notEmpty('label'),
 
   /**
    * The type of the control widget.
@@ -418,12 +425,23 @@ export default FormGroup.extend({
   helpText: null,
 
   /**
+   * Only if there is a validator, this property makes all errors to be displayed at once
+   * inside a scrollable container.
+   *
+   * @default false
+   * @property showMultipleErrors
+   * @public
+   * @type {Boolean}
+   */
+  showMultipleErrors: false,
+
+  /**
    * @property hasHelpText
    * @type boolean
    * @readonly
    * @private
    */
-  hasHelpText: computed.notEmpty('helpText').readOnly(),
+  hasHelpText: notEmpty('helpText').readOnly(),
 
   /**
    * The array of error messages from the `model`'s validation.
@@ -440,7 +458,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  hasErrors: computed.gt('errors.length', 0),
+  hasErrors: gt('errors.length', 0),
 
   /**
    * The array of warning messages from the `model`'s validation.
@@ -457,7 +475,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  hasWarnings: computed.gt('warnings.length', 0),
+  hasWarnings: gt('warnings.length', 0),
 
   /**
    * Show a custom error message that does not come from the model's validation. Will be immediately shown, regardless
@@ -475,7 +493,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  hasCustomError: computed.notEmpty('customError'),
+  hasCustomError: notEmpty('customError'),
 
   /**
    * Show a custom warning message that does not come from the model's validation. Will be immediately shown, regardless
@@ -494,7 +512,16 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  hasCustomWarning: computed.notEmpty('customWarning'),
+  hasCustomWarning: notEmpty('customWarning'),
+
+  /**
+   * Property for size styling, set to 'lg', 'sm' or 'xs' (the latter only for BS3)
+   *
+   * @property size
+   * @type String
+   * @public
+   */
+  size: null,
 
   /**
    * The array of validation messages (either errors or warnings) from either custom error/warnings or , if we are showing model validation messages, the model's validation
@@ -525,7 +552,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  hasValidationMessages: computed.gt('validationMessages.length', 0),
+  hasValidationMessages: gt('validationMessages.length', 0),
 
   /**
    * @property hasValidator
@@ -553,7 +580,7 @@ export default FormGroup.extend({
    * @default false
    * @private
    */
-  showValidation: computed.or('showOwnValidation', 'showAllValidations', 'hasCustomError', 'hasCustomWarning'),
+  showValidation: or('showOwnValidation', 'showAllValidations', 'hasCustomError', 'hasCustomWarning'),
 
   /**
    * @property showOwnValidation
@@ -577,7 +604,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  showModelValidation: computed.or('showOwnValidation', 'showAllValidations'),
+  showModelValidation: or('showOwnValidation', 'showAllValidations'),
 
   /**
    * @property showValidationMessages
@@ -585,7 +612,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  showValidationMessages: computed.and('showValidation', 'hasValidationMessages'),
+  showValidationMessages: and('showValidation', 'hasValidationMessages'),
 
   /**
    * Event or list of events which enable form validation markup rendering.
@@ -596,7 +623,7 @@ export default FormGroup.extend({
    * @default ['focusOut']
    * @public
    */
-  showValidationOn: ['focusOut'],
+  showValidationOn: null,
 
   /**
    * @property _showValidationOn
@@ -604,7 +631,7 @@ export default FormGroup.extend({
    * @readonly
    * @private
    */
-  _showValidationOn: computed('showValidationOn', function() {
+  _showValidationOn: computed('showValidationOn.[]', function() {
     let showValidationOn = this.get('showValidationOn');
 
     assert('showValidationOn must be a String or an Array', isArray(showValidationOn) || typeOf(showValidationOn) === 'string');
@@ -657,7 +684,7 @@ export default FormGroup.extend({
    * @readonly
    * @public
    */
-  useIcons: computed.equal('controlComponent', 'bs-form/element/control/input'),
+  useIcons: equal('controlComponent', 'bs-form/element/control/input'),
 
   /**
    * The form layout used for the markup generation (see http://getbootstrap.com/css/#forms):
@@ -823,8 +850,11 @@ export default FormGroup.extend({
 
   init() {
     this._super(...arguments);
+    if (this.get('showValidationOn') === null) {
+      this.set('showValidationOn', ['focusOut']);
+    }
     if (!isBlank(this.get('property'))) {
-      defineProperty(this, 'value', computed.alias(`model.${this.get('property')}`));
+      defineProperty(this, 'value', alias(`model.${this.get('property')}`));
       this.setupValidations();
     }
   },
@@ -837,13 +867,13 @@ export default FormGroup.extend({
    *  with an add-on on the right. [...] For input groups, adjust the right
    *  value to an appropriate pixel value depending on the width of your addon.
    */
-  adjustFeedbackIcons: on('didInsertElement', observer('hasFeedback', 'formLayout', function() {
+  adjustFeedbackIcons: observer('hasFeedback', 'formLayout', function() {
     scheduleOnce('afterRender', () => {
       let el = this.get('element');
       let feedbackIcon;
       // validation state icons are only shown if form element has feedback
-      if (this.get('hasFeedback')
-        && !this.get('isDestroying')
+      if (!this.get('isDestroying')
+        && this.get('hasFeedback')
         // and form group element has
         // an input-group
         && el.querySelector('.input-group')
@@ -869,7 +899,12 @@ export default FormGroup.extend({
         feedbackIcon.style.right = `${adjustedPosition}px`;
       }
     });
-  })),
+  }),
+
+  didInsertElement() {
+    this._super(...arguments);
+    this.adjustFeedbackIcons();
+  },
 
   actions: {
     change(value) {

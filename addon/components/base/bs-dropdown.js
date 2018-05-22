@@ -85,7 +85,7 @@ import layout from 'ember-bootstrap/templates/components/bs-dropdown';
  contextual component rather than a standalone dropdown to ensure the correct styling
  regardless of your Bootstrap version.
 
- If you use the [dropdown divider](Component.DropdownMenuDivider), you don't have to worry
+ If you use the [dropdown divider](Components.DropdownMenuDivider), you don't have to worry
  about differences in the markup between versions.
 
  Be sure to use the [dropdown menu link-to](Component.DropdownMenuLinkTo), for in-application
@@ -93,6 +93,10 @@ import layout from 'ember-bootstrap/templates/components/bs-dropdown';
  version and will also provide automatic `active` highlighting on dropdown menu items. If you
  wish to have a dropdown menu item refer to an external link, be sure to apply the `dropdown-item`
  class to the `<a>` tag for Bootstrap 4 compatibility.
+
+ In Bootstrap 4 the dropdown menu will be positioned using the `popper.js` library, just as the original Bootstrap
+ version does. This also allows you to set `renderInPlace=false` on the menu component to render it in a wormhole,
+ which you might want to do if you experience clipping issues by an outer `overflow: hidden` element.
 
  @class Dropdown
  @namespace Components
@@ -125,6 +129,7 @@ export default Component.extend({
 
   /**
    * By default the dropdown menu will expand downwards. Set to 'up' to expand upwards.
+   * BS4 also allows 'left' and 'right'
    *
    * @property direction
    * @type string
@@ -145,6 +150,7 @@ export default Component.extend({
 
   /**
    * A computed property to generate the suiting class for the dropdown container, either "dropdown", "dropup" or "btn-group".
+   * BS4 only: "dropleft", "dropright"
    *
    * @property containerClass
    * @type string
@@ -153,9 +159,9 @@ export default Component.extend({
    */
   containerClass: computed('toggle.tagName', 'direction', function() {
     if (this.get('toggle.tagName') === 'button' && !this.get('toggle.block')) {
-      return this.get('direction') === 'up' ? 'btn-group dropup' : 'btn-group';
+      return this.get('direction') !== 'down' ? `btn-group drop${this.get('direction')}` : 'btn-group';
     } else {
-      return this.get('direction') === 'up' ? 'dropup' : 'dropdown';
+      return `drop${this.get('direction')}`;
     }
   }),
 
@@ -171,7 +177,9 @@ export default Component.extend({
    * @property toggleElement
    * @private
    */
-  toggleElement: computed.readOnly('toggle.element'),
+  toggleElement: computed('toggle', function() {
+    return typeof FastBoot === 'undefined' ? this.get('toggle.element') || null : null;
+  }),
 
   /**
    * Reference to the child toggle (Toggle or Button)

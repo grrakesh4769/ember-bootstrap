@@ -1,5 +1,6 @@
+import { not, and } from '@ember/object/computed';
 import Component from '@ember/component';
-import { observer, computed } from '@ember/object';
+import { observer } from '@ember/object';
 import { later } from '@ember/runloop';
 import TransitionSupport from 'ember-bootstrap/mixins/transition-support';
 import layout from 'ember-bootstrap/templates/components/bs-alert';
@@ -58,7 +59,7 @@ export default Component.extend(TypeClass, TransitionSupport, {
    * has completed.
    *
    * When the alert is dismissed by user interaction this property will not update by using two-way bindings in order
-   * to follow DDAU best practices. If you want to react to such changes, subscribe to the `onHide` action
+   * to follow DDAU best practices. If you want to react to such changes, subscribe to the `onDismiss` action
    *
    * @property visible
    * @type boolean
@@ -77,7 +78,7 @@ export default Component.extend(TypeClass, TransitionSupport, {
    * @property notVisible
    * @private
    */
-  notVisible: computed.not('_visible'),
+  notVisible: not('_visible'),
 
   /**
    * Set to false to disable the fade out animation when hiding the alert.
@@ -97,8 +98,8 @@ export default Component.extend(TypeClass, TransitionSupport, {
    * @type boolean
    * @private
    */
-  alert: computed.not('hidden'),
-  showAlert: computed.and('_visible', 'fade'),
+  alert: not('hidden'),
+  showAlert: and('_visible', 'fade'),
 
   /**
    * @property classTypePrefix

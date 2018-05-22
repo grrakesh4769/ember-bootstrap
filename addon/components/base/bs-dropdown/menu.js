@@ -24,9 +24,6 @@ export default Component.extend({
    * @public
    */
 
-  classNames: ['dropdown-menu'],
-  classNameBindings: ['alignClass'],
-
   /**
    * @property ariaRole
    * @default menu
@@ -44,6 +41,32 @@ export default Component.extend({
    * @public
    */
   align: 'left',
+
+  /**
+   * @property direction
+   * @default 'down'
+   * @type string
+   * @private
+   */
+  direction: 'down',
+
+  /**
+   * @property inNav
+   * @type {boolean}
+   * @private
+   */
+  inNav: false,
+
+  /**
+   * Applies only to BS4: by default the menu is rendered in the same place the dropdown. If you experience clipping
+   * issues, you can set this to false to render the menu in a wormhole at the top of the DOM.
+   *
+   * @property renderInPlace
+   * @type boolean
+   * @default true
+   * @public
+   */
+  renderInPlace: true,
 
   alignClass: computed('align', function() {
     if (this.get('align') !== 'left') {

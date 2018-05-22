@@ -1,58 +1,67 @@
-import { find, findAll } from 'ember-native-dom-helpers';
-import { moduleForComponent } from 'ember-qunit';
+import { module } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import { test, testBS3, testBS4 } from '../../helpers/bootstrap-test';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('bs-nav', 'Integration | Component | bs-nav', {
-  integration: true
-});
+module('Integration | Component | bs-nav', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it has correct markup', function(assert) {
-  // Template block usage:
-  this.render(hbs`
-    {{#bs-nav}}
-      template block text
-    {{/bs-nav}}
-  `);
+  test('it has correct markup', async function(assert) {
+    // Template block usage:
+    await render(hbs`
+      {{#bs-nav}}
+        template block text
+      {{/bs-nav}}
+    `);
 
-  assert.equal(find('*').textContent.trim(), 'template block text', 'Shows block content');
-  assert.equal(findAll('ul').length, 1, 'it is an unordered list');
-  assert.ok(find('ul').classList.contains('nav'), 'has nav class');
-});
+    assert.dom('*').hasText('template block text', 'Shows block content');
+    assert.dom('ul').exists({ count: 1 }, 'it is an unordered list');
+    assert.dom('ul').hasClass('nav', 'has nav class');
+  });
 
-testBS3('it supports bootstrap options', function(assert) {
-  // Template block usage:
-  this.render(hbs`
-    {{bs-nav justified=true stacked=true type="pills"}}
-  `);
+  testBS3('it supports bootstrap options', async function(assert) {
+    // Template block usage:
+    await render(hbs`
+      {{bs-nav justified=true stacked=true type="pills"}}
+    `);
 
-  assert.ok(find('ul').classList.contains('nav-pills'), 'has pills class');
-  assert.ok(find('ul').classList.contains('nav-justified'), 'has justified class');
-  assert.ok(find('ul').classList.contains('nav-stacked'), 'has stacked class');
-});
+    assert.dom('ul').hasClass('nav-pills', 'has pills class');
+    assert.dom('ul').hasClass('nav-justified', 'has justified class');
+    assert.dom('ul').hasClass('nav-stacked', 'has stacked class');
+  });
 
-testBS4('it supports bootstrap options', function(assert) {
-  // Template block usage:
-  this.render(hbs`
-    {{bs-nav justified=true stacked=true type="pills"}}
-  `);
+  testBS4('it supports bootstrap options', async function(assert) {
+    // Template block usage:
+    await render(hbs`
+      {{bs-nav justified=true stacked=true type="pills"}}
+    `);
 
-  assert.ok(find('ul').classList.contains('nav-pills'), 'has pills class');
-  assert.ok(find('ul').classList.contains('nav-justified'), 'has justified class');
-  assert.ok(find('ul').classList.contains('flex-column'), 'has stacked class');
-});
+    assert.dom('ul').hasClass('nav-pills', 'has pills class');
+    assert.dom('ul').hasClass('nav-justified', 'has justified class');
+    assert.dom('ul').hasClass('flex-column', 'has stacked class');
+  });
 
-test('it exposes contextual components', function(assert) {
-  this.render(hbs`
-    {{#bs-nav as |nav|}}
-      {{#nav.item}}
-        {{#nav.link-to "application"}}Dummy{{/nav.link-to}}
-      {{/nav.item}}
-    {{/bs-nav}}
-  `);
+  test('it exposes contextual components', async function(assert) {
+    await render(hbs`
+      {{#bs-nav as |nav|}}
+        {{#nav.item}}
+          {{#nav.link-to "application"}}Dummy{{/nav.link-to}}
+        {{/nav.item}}
+        {{#nav.dropdown as |dd|}}
+          {{#dd.toggle}}Dropdown <span class="caret"></span>{{/dd.toggle}}
+          {{#dd.menu as |ddm|}}
+            {{#ddm.item}}{{#ddm.link-to "index"}}Home{{/ddm.link-to}}{{/ddm.item}}
+          {{/dd.menu}}
+        {{/nav.dropdown}}
+      {{/bs-nav}}
+    `);
 
-  assert.equal(findAll('.nav').length, 1, 'it has the nav');
-  assert.equal(findAll('.nav li').length, 1, 'it has the nav item');
-  assert.equal(findAll('.nav li a').length, 1, 'it has the nav link');
-  // TODO: Add nav.dropdown
+    assert.dom('.nav').exists({ count: 1 }, 'it has the nav');
+    assert.dom('.nav > li').exists({ count: 2 }, 'it has the nav item');
+    assert.dom('.nav > li > a[href]').exists({ count: 1 }, 'it has the nav link');
+    assert.dom('.nav > li.dropdown').exists({ count: 1 }, 'it has a dropdown as a nav item');
+    assert.dom('.nav > li.dropdown > .dropdown-menu').exists({ count: 1 }, 'it has the nav dropdown menu');
+    assert.dom('.nav > li.dropdown > .dropdown-menu a').exists({ count: 1 }, 'it has the nav dropdown menu item');
+  });
 });

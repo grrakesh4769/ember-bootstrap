@@ -46,11 +46,11 @@ import layout from 'ember-bootstrap/templates/components/bs-nav';
  ```hbs
  {{#bs-nav type="pills" as |nav|}}
    {{#nav.item}}{{#nav.link-to "index"}}Home{{/nav.link-to}}{{/nav.item}}
-   {{#nav.dropdown tagName="li" as |dd|}}
+   {{#nav.dropdown as |dd|}}
      {{#dd.toggle}}Dropdown <span class="caret"></span>{{/dd.toggle}}
      {{#dd.menu as |ddm|}}
-       {{#ddm.item}}{{#link-to "foo"}}Foo{{/link-to}}{{/ddm.item}}
-       {{#ddm.item}}{{#link-to "bar"}}Bar{{/link-to}}{{/ddm.item}}
+       {{#ddm.item}}{{#ddm.link-to "foo"}}Foo{{/ddm.link-to}}{{/ddm.item}}
+       {{#ddm.item}}{{#ddm.link-to "bar"}}Bar{{/ddm.link-to}}{{/ddm.item}}
      {{/dd.menu}}
    {{/nav.dropdown}}
  {{/bs-nav}}

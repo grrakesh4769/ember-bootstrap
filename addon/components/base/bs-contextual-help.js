@@ -1,4 +1,4 @@
-import { assert } from '@ember/debug';
+import { and, or, reads, gt } from '@ember/object/computed';
 import Component from '@ember/component';
 import { guidFor } from '@ember/object/internals';
 import { isArray } from '@ember/array';
@@ -6,18 +6,17 @@ import { isBlank } from '@ember/utils';
 import EmberObject, { observer, computed } from '@ember/object';
 import { next, schedule, cancel, later, run } from '@ember/runloop';
 import TransitionSupport from 'ember-bootstrap/mixins/transition-support';
-import getPosition from 'ember-bootstrap/utils/get-position';
-import getCalculatedOffset from 'ember-bootstrap/utils/get-calculated-offset';
 import getParent from 'ember-bootstrap/utils/get-parent';
-import setOffset from 'ember-bootstrap/utils/set-offset';
 import transitionEnd from 'ember-bootstrap/utils/transition-end';
 
 const InState = EmberObject.extend({
   hover: false,
   focus: false,
   click: false,
-  showHelp: computed.or('hover', 'focus', 'click')
+  showHelp: or('hover', 'focus', 'click')
 });
+
+function noop() {}
 
 /**
 
@@ -47,18 +46,17 @@ export default Component.extend(TransitionSupport, {
    */
   placement: 'top',
 
-  _placement: computed.reads('placement'),
-
   /**
-   * When `true` it will dynamically reorient the tooltip/popover. For example, if `placement` is "left", the
-   * tooltip/popover will display to the left when possible, otherwise it will display right.
+   * By default it will dynamically reorient the tooltip/popover based on the available space in the viewport. For
+   * example, if `placement` is "left", the tooltip/popover will display to the left when possible, otherwise it will
+   * display right. Set to `false` to force placement according to the `placement` property
    *
    * @property autoPlacement
    * @type boolean
-   * @default false
+   * @default true
    * @public
    */
-  autoPlacement: false,
+  autoPlacement: true,
 
   /**
    * You can programmatically show the tooltip/popover by setting this to `true`
@@ -75,7 +73,7 @@ export default Component.extend(TransitionSupport, {
    * @type boolean
    * @private
    */
-  inDom: computed.reads('visible'),
+  inDom: and('visible', 'triggerTargetElement'),
 
   /**
    * Set to false to disable fade animations.
@@ -95,7 +93,7 @@ export default Component.extend(TransitionSupport, {
    * @default false
    * @private
    */
-  showHelp: computed.reads('visible'),
+  showHelp: reads('visible'),
 
   /**
    * Delay showing and hiding the tooltip/popover (ms). Individual delays for showing and hiding can be specified by using the
@@ -116,7 +114,7 @@ export default Component.extend(TransitionSupport, {
    * @default 0
    * @public
    */
-  delayShow: computed.reads('delay'),
+  delayShow: reads('delay'),
 
   /**
    * Delay hiding the tooltip/popover. This property overrides the general delay set with the `delay` property.
@@ -126,10 +124,10 @@ export default Component.extend(TransitionSupport, {
    * @default 0
    * @public
    */
-  delayHide: computed.reads('delay'),
+  delayHide: reads('delay'),
 
-  hasDelayShow: computed.gt('delayShow', 0),
-  hasDelayHide: computed.gt('delayHide', 0),
+  hasDelayShow: gt('delayShow', 0),
+  hasDelayHide: gt('delayHide', 0),
 
   /**
    * The duration of the fade transition
@@ -232,15 +230,18 @@ export default Component.extend(TransitionSupport, {
     let el;
 
     if (isBlank(triggerElement)) {
-      el = getParent(this);
+      try {
+        el = getParent(this);
+      } catch(e) {
+        return null;
+      }
     } else if (triggerElement === 'parentView') {
       el = this.get('parentView.element');
     } else {
       el = document.querySelector(triggerElement);
     }
-    assert('Trigger element for tooltip/popover must be present', el);
     return el;
-  }),
+  }).volatile(),
 
   /**
    * The event(s) that should trigger the tooltip/popover - click | hover | focus.
@@ -469,34 +470,20 @@ export default Component.extend(TransitionSupport, {
   },
 
   _show(skipTransition = false) {
-    let element = this.get('triggerTargetElement');
-    let placement = this.get('placement');
+    this.set('showHelp', true);
 
-    // this.$element.attr('aria-describedby', tipId) @todo ?
+    // If this is a touch-enabled device we add extra
+    // empty mouseover listeners to the body's immediate children;
+    // only needed because of broken event delegation on iOS
+    // https://www.quirksmode.org/blog/archives/2014/02/mouse_event_bub.html
 
-    let tip = this.get('overlayElement');
-    tip.style.top = 0;
-    tip.style.left = 0;
-    tip.style.display = 'block';
-
-    let pos = getPosition(element);
-    let actualWidth = tip.offsetWidth;
-    let actualHeight = tip.offsetHeight;
-
-    if (this.get('autoPlacement')) {
-      let viewportDim = getPosition(this.get('viewportElement'));
-
-      placement = placement === 'bottom' && pos.bottom + actualHeight > viewportDim.bottom ? 'top'
-        : placement === 'top' && pos.top - actualHeight < viewportDim.top ? 'bottom'
-          : placement === 'right' && pos.right + actualWidth > viewportDim.width ? 'left'
-            : placement === 'left' && pos.left - actualWidth < viewportDim.left ? 'right'
-              : placement;
+    // See https://github.com/twbs/bootstrap/pull/22481
+    if ('ontouchstart' in document.documentElement) {
+      let { children } = document.body;
+      for (let i = 0; i < children.length; i++) {
+        children[i].addEventListener('mouseover', noop);
+      }
     }
-
-    this.set('_placement', placement);
-
-    let calculatedOffset = getCalculatedOffset(placement, pos, actualWidth, actualHeight);
-    this.applyPlacement(calculatedOffset, placement);
 
     function tooltipShowComplete() {
       if (this.get('isDestroyed')) {
@@ -517,104 +504,6 @@ export default Component.extend(TransitionSupport, {
     } else {
       tooltipShowComplete.call(this);
     }
-  },
-
-  /**
-   * Position the tooltip/popover
-   *
-   * @method applyPlacement
-   * @param offset
-   * @param placement
-   * @private
-   */
-  applyPlacement(offset, placement) {
-    let tip = this.get('overlayElement');
-    let width = tip.offsetWidth;
-    let height = tip.offsetHeight;
-
-    // manually read margins because getBoundingClientRect includes difference
-    let marginTop = parseInt(window.getComputedStyle(tip).marginTop, 10);
-    let marginLeft = parseInt(window.getComputedStyle(tip).marginLeft, 10);
-
-    // we must check for NaN for ie 8/9
-    if (isNaN(marginTop)) {
-      marginTop = 0;
-    }
-    if (isNaN(marginLeft)) {
-      marginLeft = 0;
-    }
-
-    offset.top += marginTop;
-    offset.left += marginLeft;
-
-    setOffset(tip, offset);
-
-    this.set('showHelp', true);
-
-    schedule('afterRender', () => {
-      // check to see if placing tip in new offset caused the tip to resize itself
-      let actualWidth = tip.offsetWidth;
-      let actualHeight = tip.offsetHeight;
-
-      if (placement === 'top' && actualHeight !== height) {
-        offset.top = offset.top + height - actualHeight;
-      }
-
-      let delta = this.getViewportAdjustedDelta(placement, offset, actualWidth, actualHeight);
-
-      if (delta.left) {
-        offset.left += delta.left;
-      } else {
-        offset.top += delta.top;
-      }
-
-      let isVertical = /top|bottom/.test(placement);
-      let arrowDelta = isVertical ? delta.left * 2 - width + actualWidth : delta.top * 2 - height + actualHeight;
-      let arrowOffsetPosition = isVertical ? 'offsetWidth' : 'offsetHeight';
-
-      setOffset(tip, offset);
-      this.replaceArrow(arrowDelta, tip[arrowOffsetPosition], isVertical);
-    });
-  },
-
-  /**
-   * @method getViewportAdjustedDelta
-   * @param placement
-   * @param pos
-   * @param actualWidth
-   * @param actualHeight
-   * @return {{top: number, left: number}}
-   * @private
-   */
-  getViewportAdjustedDelta(placement, pos, actualWidth, actualHeight) {
-    let delta = { top: 0, left: 0 };
-    let viewport = this.get('viewportElement');
-    if (!viewport) {
-      return delta;
-    }
-
-    let viewportPadding = this.get('viewportPadding');
-    let viewportDimensions = getPosition(viewport);
-
-    if (/right|left/.test(placement)) {
-      let topEdgeOffset = pos.top - viewportPadding - viewportDimensions.scroll;
-      let bottomEdgeOffset = pos.top + viewportPadding - viewportDimensions.scroll + actualHeight;
-      if (topEdgeOffset < viewportDimensions.top) { // top overflow
-        delta.top = viewportDimensions.top - topEdgeOffset;
-      } else if (bottomEdgeOffset > viewportDimensions.top + viewportDimensions.height) { // bottom overflow
-        delta.top = viewportDimensions.top + viewportDimensions.height - bottomEdgeOffset;
-      }
-    } else {
-      let leftEdgeOffset = pos.left - viewportPadding;
-      let rightEdgeOffset = pos.left + viewportPadding + actualWidth;
-      if (leftEdgeOffset < viewportDimensions.left) { // left overflow
-        delta.left = viewportDimensions.left - leftEdgeOffset;
-      } else if (rightEdgeOffset > viewportDimensions.right) { // right overflow
-        delta.left = viewportDimensions.left + viewportDimensions.width - rightEdgeOffset;
-      }
-    }
-
-    return delta;
   },
 
   /**
@@ -659,6 +548,15 @@ export default Component.extend(TransitionSupport, {
 
     this.set('showHelp', false);
 
+    // if this is a touch-enabled device we remove the extra
+    // empty mouseover listeners we added for iOS support
+    if ('ontouchstart' in document.documentElement) {
+      let { children } = document.body;
+      for (let i = 0; i < children.length; i++) {
+        children[i].removeEventListener('mouseover', noop);
+      }
+    }
+
     if (this.get('usesTransition')) {
       transitionEnd(this.get('overlayElement'), tooltipHideComplete, this, this.get('transitionDuration'));
     } else {
@@ -692,17 +590,25 @@ export default Component.extend(TransitionSupport, {
    * @private
    */
   removeListeners() {
-    let target = this.get('triggerTargetElement');
-    this.get('_triggerEvents')
-      .forEach((event) => {
-        if (isArray(event)) {
-          let [inEvent, outEvent] = event;
-          target.removeEventListener(inEvent, this._handleEnter);
-          target.removeEventListener(outEvent, this._handleLeave);
-        } else {
-          target.removeEventListener(event, this._handleToggle);
-        }
-      });
+    try {
+      let target = this.get('triggerTargetElement');
+      this.get('_triggerEvents')
+        .forEach((event) => {
+          if (isArray(event)) {
+            let [inEvent, outEvent] = event;
+            target.removeEventListener(inEvent, this._handleEnter);
+            target.removeEventListener(outEvent, this._handleLeave);
+          } else {
+            target.removeEventListener(event, this._handleToggle);
+          }
+        });
+    } catch(e) {} // eslint-disable-line no-empty
+  },
+
+  actions: {
+    close() {
+      this.hide();
+    }
   },
 
   init() {
@@ -716,7 +622,7 @@ export default Component.extend(TransitionSupport, {
     this._super(...arguments);
     this.addListeners();
     if (this.get('visible')) {
-      next(this, this._show, true);
+      next(this, this.show, true);
     }
   },
 

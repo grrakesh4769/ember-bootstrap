@@ -1,15 +1,22 @@
 {{#if inDom}}
-
-  {{#ember-wormhole to="ember-bootstrap-wormhole" renderInPlace=_renderInPlace}}
-
-    {{#bs-popover/element id=overlayId placement=_placement fade=fade showHelp=showHelp title=title class=class}}
-      {{#if hasBlock}}
-        {{yield}}
-      {{else}}
-        {{title}}
-      {{/if}}
-    {{/bs-popover/element}}
-
-  {{/ember-wormhole}}
-
+  {{#bs-popover/element
+    id=overlayId
+    parent=this
+    placement=placement
+    fade=fade
+    showHelp=showHelp
+    title=title
+    class=class
+    renderInPlace=_renderInPlace
+    popperTarget=triggerTargetElement
+    autoPlacement=autoPlacement
+    viewportElement=viewportElement
+    viewportPadding=viewportPadding
+  }}
+    {{yield
+      (hash
+        close=(action "close")
+      )
+    }}
+  {{/bs-popover/element}}
 {{/if}}

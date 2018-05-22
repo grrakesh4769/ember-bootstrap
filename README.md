@@ -10,7 +10,7 @@
 [![Browser Status](https://badges.herokuapp.com/sauce/ember-bootstrap)](https://saucelabs.com/u/ember-bootstrap)
 
 
-An [ember-cli](http://www.ember-cli.com) addon for using [Twitter Bootstrap](http://getbootstrap.com/) 3 or 4 (experimental) in Ember applications.
+An [ember-cli](http://www.ember-cli.com) addon for using [Bootstrap](http://getbootstrap.com/) 3 or 4 in Ember applications.
 
 The addon includes the Bootstrap assets (CSS, Icons) in your project (can be disabled). On top of that, it provides a set of native Ember components (no use of Bootstrap JavaScript!).</p>
 
@@ -23,28 +23,20 @@ In your application's directory:
     ember install ember-bootstrap
     
 This will install Bootstrap 3 and will use the currently installed preprocessor or none if one is not installed.
-To switch Bootstrap version or preprocessor, see the documentation.
+To switch Bootstrap version or preprocessor, see the [setup documentation](http://www.ember-bootstrap.com/#/getting-started/setup).
 
 ## Compatibility
 
 ember-bootstrap works and is fully [tested](https://travis-ci.org/kaliber5/ember-bootstrap) with
 
 * Ember.js 2.3+
-* Bootstrap 3 and 4. *Support for Bootstrap 4 is currently considered experimental and not covered by SemVer, as Bootstrap 4 itself is not yet stable.*
+* Bootstrap 3 and 4.
 * all modern evergreen browsers (Chrome, Firefox, Safari, Edge) and IE 11. 
-*It currently also supports IE 9 and 10, but maintaining that support is
-not guaranteed according to SemVer. Support of these might be dropped with a clear message in a minor release.*
 * FastBoot 1.0+ 
-* jQuery-less builds using [ember-native-dom-event-dispatcher](https://github.com/rwjblue/ember-native-dom-event-dispatcher)
+* jQuery-less builds (using [ember-native-dom-event-dispatcher](https://github.com/rwjblue/ember-native-dom-event-dispatcher)
+or Ember 3.x)
 
-### 1.0 RC
-
-The 1.0 release is currently in release candidate stage. There *should* not be any breaking changes anymore. So we encourage everybody
-to use it for new projects, and also to upgrade existing projects.
-
-The 1.0 alpha series consisted of a number of breaking changes compared to the previous 0.x releases, so be sure to check the 
-[CHANGELOG](CHANGELOG.md) for details. After the first stable 1.0 release the API will remain stable according to
-[SemVer](http://semver.org/).    
+This project follows [Semantic Versioning](http://semver.org/).
 
 ## Updates
 
@@ -60,4 +52,4 @@ If you want to keep up to date with ember-bootstrap, you may want to [follow me 
 
 ## Copyright and license
 
-Code and documentation copyright 2017 [kaliber5](http://www.kaliber5.de) and contributors. Code released under [the MIT license](LICENSE.md).
+Code and documentation copyright 2018 [kaliber5](http://www.kaliber5.de) and contributors. Code released under [the MIT license](LICENSE.md).

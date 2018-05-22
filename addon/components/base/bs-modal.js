@@ -1,3 +1,4 @@
+import { not } from '@ember/object/computed';
 import { assert } from '@ember/debug';
 import Component from '@ember/component';
 import { getOwner } from '@ember/application';
@@ -7,6 +8,10 @@ import layout from 'ember-bootstrap/templates/components/bs-modal';
 import TransitionSupport from 'ember-bootstrap/mixins/transition-support';
 import listenTo from 'ember-bootstrap/utils/listen-to-cp';
 import transitionEnd from 'ember-bootstrap/utils/transition-end';
+import {
+  findElementById,
+  getDOM
+} from '../../utils/dom';
 
 /**
 
@@ -84,14 +89,14 @@ export default Component.extend(TransitionSupport, {
    * @default true
    * @public
    */
-  fade: computed.not('isFastBoot'),
+  fade: not('isFastBoot'),
 
   /**
    * @property notFade
    * @type boolean
    * @private
    */
-  notFade: computed.not('fade'),
+  notFade: not('fade'),
 
   /**
    * Used to apply Bootstrap's visibility classes.
@@ -158,6 +163,17 @@ export default Component.extend(TransitionSupport, {
   keyboard: true,
 
   /**
+   * [BS4 only!] Vertical position, either 'top' (default) or 'center'
+   * 'center' will apply the `modal-dialog-centered` class
+   *
+   * @property position
+   * @type {string}
+   * @default 'top'
+   * @public
+   */
+  position: 'top',
+
+  /**
    * The id of the `.modal` element.
    *
    * @property modalId
@@ -194,7 +210,7 @@ export default Component.extend(TransitionSupport, {
   }),
 
   /**
-   * The DOM elemnt of the backdrop element.
+   * The DOM element of the backdrop element.
    *
    * @property backdropElement
    * @type object
@@ -203,6 +219,19 @@ export default Component.extend(TransitionSupport, {
    */
   backdropElement: computed('backdropId', function() {
     return document.getElementById(this.get('backdropId'));
+  }).volatile(),
+
+  /**
+   * The destination DOM element for in-element.
+   *
+   * @property destinationElement
+   * @type object
+   * @readonly
+   * @private
+   */
+  destinationElement: computed(function() {
+    let dom = getDOM(this);
+    return findElementById(dom, 'ember-bootstrap-wormhole');
   }).volatile(),
 
   /**
@@ -241,8 +270,8 @@ export default Component.extend(TransitionSupport, {
    * @type boolean
    * @private
    */
-  _renderInPlace: computed('renderInPlace', 'isFastBoot', function() {
-    return this.get('renderInPlace') || !this.get('isFastBoot') && !document.getElementById('ember-bootstrap-wormhole');
+  _renderInPlace: computed('renderInPlace', 'destinationElement', function() {
+    return this.get('renderInPlace') || !this.get('destinationElement');
   }),
 
   /**
@@ -360,7 +389,9 @@ export default Component.extend(TransitionSupport, {
       }
     },
     submit() {
-      let forms = this.get('modalElement').querySelectorAll('.modal-body form');
+      // replace modalId by :scope selector if supported by all target browsers
+      let modalId = this.get('modalId');
+      let forms = this.get('modalElement').querySelectorAll(`#${modalId} .modal-body form`);
       if (forms.length > 0) {
         // trigger submit event on body forms
         let event = document.createEvent('Events');
@@ -402,9 +433,6 @@ export default Component.extend(TransitionSupport, {
     }
     this._isOpen = true;
 
-    this.checkScrollbar();
-    this.setScrollbar();
-
     document.body.classList.add('modal-open');
 
     this.resize();
@@ -414,11 +442,16 @@ export default Component.extend(TransitionSupport, {
         return;
       }
 
-      this.set('inDom', true);
+      this.checkScrollbar();
+      this.setScrollbar();
+
       schedule('afterRender', () => {
         let modalEl = this.get('modalElement');
-        modalEl.scrollTop = 0;
+        if (!modalEl) {
+          return;
+        }
 
+        modalEl.scrollTop = 0;
         this.handleUpdate();
         this.set('showModal', true);
         this.get('onShow')();
@@ -434,6 +467,7 @@ export default Component.extend(TransitionSupport, {
         }
       });
     };
+    this.set('inDom', true);
     this.handleBackdrop(callback);
   },
 
@@ -470,12 +504,11 @@ export default Component.extend(TransitionSupport, {
       return;
     }
 
-    this.set('inDom', false);
-
     this.handleBackdrop(() => {
       document.body.classList.remove('modal-open');
       this.resetAdjustments();
       this.resetScrollbar();
+      this.set('inDom', false);
       this.get('onHidden')();
     });
   },
@@ -497,20 +530,24 @@ export default Component.extend(TransitionSupport, {
         return;
       }
 
-      if (doAnimate) {
-        schedule('afterRender', this, function() {
-          let backdrop = this.get('backdropElement');
-          assert('Backdrop element should be in DOM', backdrop);
+      schedule('afterRender', this, function() {
+        let backdrop = this.get('backdropElement');
+        assert('Backdrop element should be in DOM', backdrop);
+        if (doAnimate) {
           transitionEnd(backdrop, callback, this, this.get('backdropTransitionDuration'));
-        });
-      } else {
-        callback.call(this);
-      }
+        } else {
+          callback.call(this);
+        }
+      });
+
     } else if (!this.get('isOpen') && this.get('backdrop')) {
       let backdrop = this.get('backdropElement');
       assert('Backdrop element should be in DOM', backdrop);
 
       let callbackRemove = function() {
+        if (this.get('isDestroyed')) {
+          return;
+        }
         this.set('showBackdrop', false);
         if (callback) {
           callback.call(this);
@@ -650,7 +687,7 @@ export default Component.extend(TransitionSupport, {
     this.setProperties({
       showModal: isOpen && (!fade || isFastBoot),
       showBackdrop: isOpen && backdrop,
-      inDom: isOpen && isFastBoot
+      inDom: isOpen
     });
   }
 });

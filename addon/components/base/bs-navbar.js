@@ -30,6 +30,9 @@ import listenTo from 'ember-bootstrap/utils/listen-to-cp';
  {{/bs-navbar}}
  ```
 
+ **Note:** the `<div class="navbar-header">` is required for BS3 to hold the elements visible on a mobile breakpoint,
+ when the actual content is collapsed. It should *not* be used for BS4!
+
  The component yields references to the following contextual components:
 
  * [Components.NavbarContent](Components.NavbarContent.html)
@@ -82,7 +85,7 @@ import listenTo from 'ember-bootstrap/utils/listen-to-cp';
 
  Bootstrap 4 changed the default navbar styling option from `navbar-default` to `navbar-light`.
  If you explicitly specified "default" in Bootstrap 3 and are migrating, you will need to change
- this in your code. Both versions retain the `navbar-inverse` style.
+ this in your code. Bootstrap 4 changes `navbar-inverse` to `navbar-dark`.
 
  Bootstrap 4 navbars are fluid by default without the need for an additional container. An
  additional container is added like with Bootstrap 3 if `fluid` is `false`.
@@ -242,12 +245,12 @@ export default Component.extend(TypeClass, {
 
   /**
    * Bootstrap 4 Only: Defines the responsive toggle breakpoint size. Options are the standard
-   * two character Bootstrap size abbreviations. Used to set the `navbar-toggleable-*`
-   * class.
+   * two character Bootstrap size abbreviations. Used to set the `navbar-expand-*`
+   * class. Set to `null` to disable collapsing.
    *
    * @property toggleBreakpoint
    * @type String
-   * @default 'md'
+   * @default 'lg'
    * @public
    */
 
@@ -258,7 +261,7 @@ export default Component.extend(TypeClass, {
    *
    * @property backgroundColor
    * @type String
-   * @default 'faded'
+   * @default 'light'
    * @public
    */
 });

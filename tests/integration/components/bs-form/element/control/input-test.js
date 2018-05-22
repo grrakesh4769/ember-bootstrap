@@ -1,14 +1,24 @@
-import { findAll } from 'ember-native-dom-helpers';
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { testBS4 } from "../../../../../helpers/bootstrap-test";
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('bs-form/element/control/input', 'Integration | Component | bs form/element/control/input', {
-  integration: true
-});
+module('Integration | Component | bs form/element/control/input', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders', function(assert) {
+  test('it renders', async function(assert) {
 
-  this.render(hbs`{{bs-form/element/control/input}}`);
+    await render(hbs`{{bs-form/element/control/input}}`);
 
-  assert.equal(findAll('input[type=text]').length, 1);
+    assert.dom('input[type=text]').exists({ count: 1 });
+  });
+
+  testBS4('support size classes', async function(assert) {
+    await render(hbs`{{bs-form/element/control/input size="lg"}}`);
+    assert.dom('input').hasClass('form-control-lg', 'input has large class');
+
+    await render(hbs`{{bs-form/element/control/input size="sm"}}`);
+    assert.dom('input').hasClass('form-control-sm', 'input has small class');
+  });
 });

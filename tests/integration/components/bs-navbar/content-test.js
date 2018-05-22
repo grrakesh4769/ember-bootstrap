@@ -1,34 +1,38 @@
-import { find, findAll } from 'ember-native-dom-helpers';
-import { moduleForComponent, test } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { setupRenderingTest } from 'ember-qunit';
+import { render } from '@ember/test-helpers';
 import hbs from 'htmlbars-inline-precompile';
 
-moduleForComponent('bs-navbar/content', 'Integration | Component | bs-navbar/content', {
-  integration: true
-});
+module('Integration | Component | bs-navbar/content', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('it renders', function(assert) {
-  this.render(hbs`{{bs-navbar/content}}`);
+  test('it renders', async function(assert) {
+    await render(hbs`{{bs-navbar/content}}`);
 
-  assert.equal(find('*').textContent.trim(), '');
+    assert.dom('*').hasText('');
 
-  // Template block usage:
-  this.render(hbs`
-    {{#bs-navbar/content}}
-      template block text
-    {{/bs-navbar/content}}
-  `);
+    // Template block usage:
+    await render(hbs`
+      {{#bs-navbar/content}}
+        template block text
+      {{/bs-navbar/content}}
+    `);
 
-  assert.equal(find('*').textContent.trim(), 'template block text');
-});
+    assert.dom('*').hasText('template block text');
+  });
 
-test('it has correct markup', function(assert) {
-  this.render(hbs`
-    {{#bs-navbar/content}}
-      Content
-    {{/bs-navbar/content}}
-  `);
+  test('it has correct markup', async function(assert) {
+    await render(hbs`
+      {{#bs-navbar/content}}
+        Content
+      {{/bs-navbar/content}}
+    `);
 
-  assert.equal(find('*').textContent.trim(), 'Content');
-  assert.equal(findAll('.navbar-collapse').length, 1, 'there is only one element with the navbar-collapse class');
-  assert.ok(find('.navbar-collapse').classList.contains('collapse'), 'it has the collapse class indicating it derives from bs-collapse');
+    assert.dom('*').hasText('Content');
+    assert.dom('.navbar-collapse').exists({ count: 1 }, 'there is only one element with the navbar-collapse class');
+    assert.dom('.navbar-collapse').hasClass(
+      'collapse',
+      'it has the collapse class indicating it derives from bs-collapse'
+    );
+  });
 });

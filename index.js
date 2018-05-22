@@ -1,10 +1,6 @@
-/* eslint-env node */
-/* eslint-disable ember-suave/prefer-destructuring */
 'use strict';
 
 const path = require('path');
-const util = require('util');
-const extend = util._extend;
 const mergeTrees = require('broccoli-merge-trees');
 const Funnel = require('broccoli-funnel');
 const stew = require('broccoli-stew');
@@ -15,6 +11,8 @@ const rename = stew.rename;
 const BroccoliDebug = require('broccoli-debug');
 const chalk = require('chalk');
 const SilentError = require('silent-error'); // From ember-cli
+const VersionChecker = require('ember-cli-version-checker');
+const resolve = require('resolve');
 
 const defaultOptions = {
   importBootstrapTheme: false,
@@ -39,6 +37,8 @@ const componentDependencies = {
   'bs-tab': ['bs-nav'],
   'bs-tooltip': ['bs-contextual-help']
 };
+
+const minimumBS4Version = '4.0.0-beta';
 
 // For ember-cli < 2.7 findHost doesnt exist so we backport from that version
 // for earlier version of ember-cli.
@@ -67,12 +67,14 @@ module.exports = {
   },
 
   included() {
+    this._super.included.apply(this, arguments);
+
     let findHost = this._findHost || findHostShim;
     let app = findHost.call(this);
 
     this.app = app;
 
-    let options = extend(extend({}, defaultOptions), app.options['ember-bootstrap']);
+    let options =Object.assign({}, defaultOptions, app.options['ember-bootstrap']);
     if (process.env.BOOTSTRAPVERSION) {
       // override bootstrapVersion config when environment variable is set
       options.bootstrapVersion = parseInt(process.env.BOOTSTRAPVERSION);
@@ -108,6 +110,15 @@ module.exports = {
   validateDependencies() {
     let bowerDependencies = this.app.project.bowerDependencies();
 
+    if (this.getBootstrapVersion() === 4) {
+      let checker = new VersionChecker(this);
+      let dep = checker.for('bootstrap');
+
+      if (!dep.gte(minimumBS4Version)) {
+        this.warn(`For Bootstrap 4 support this version of ember-bootstrap requires at least Bootstrap ${minimumBS4Version}, but you have ${dep.version}. Please run \`ember generate ember-bootstrap\` to update your dependencies!`);
+      }
+    }
+
     if ('bootstrap' in bowerDependencies || 'bootstrap-sass' in bowerDependencies) {
       this.warn('The dependencies for ember-bootstrap may be outdated. Please run `ember generate ember-bootstrap` to install appropriate dependencies!');
     }
@@ -138,29 +149,41 @@ module.exports = {
   },
 
   getBootstrapStylesPath() {
-    let nodeModulesPath = this.app.project.nodeModulesPath;
     switch (this.preprocessor) {
       case 'sass':
         if (this.getBootstrapVersion() === 4) {
-          return path.join(nodeModulesPath, 'bootstrap', 'scss');
+          return this.resolvePackagePath('bootstrap/scss');
         } else {
-          return path.join(nodeModulesPath, 'bootstrap-sass', 'assets', 'stylesheets');
+          return this.resolvePackagePath('bootstrap-sass/assets/stylesheets');
         }
       case 'less':
-        return path.join(nodeModulesPath, 'bootstrap', 'less');
+        return this.resolvePackagePath('bootstrap/less');
       default:
-        return path.join(nodeModulesPath, 'bootstrap', 'dist', 'css');
+        return this.resolvePackagePath('bootstrap/dist/css');
     }
   },
 
   getBootstrapFontPath() {
     switch (this.preprocessor) {
       case 'sass':
-        return path.join(this.app.project.nodeModulesPath, 'bootstrap-sass', 'assets', 'fonts');
+        return this.resolvePackagePath('bootstrap-sass/assets/fonts');
       case 'less':
       default:
-        return path.join(this.app.project.nodeModulesPath, 'bootstrap', 'fonts');
+        return this.resolvePackagePath('bootstrap/fonts');
     }
+  },
+
+  resolvePackagePath(pkgPath) {
+    let parts = pkgPath.split('/');
+    let pkg = parts[0];
+    let result = path.dirname(resolve.sync(`${pkg}/package.json`, { basedir: this.app.project.root }));
+
+    // add sub folders to path
+    if (parts.length > 1) {
+      let args = parts.map((part, i) => i === 0 ? result : part);
+      result = path.join.apply(path, args);
+    }
+    return result;
   },
 
   hasPreprocessor() {
@@ -206,6 +229,11 @@ module.exports = {
 
   getOtherBootstrapVersion() {
     return this.getBootstrapVersion() === 3 ? 4 : 3;
+  },
+
+  treeForApp(tree) {
+    tree = this.filterComponents(tree);
+    return this._super.treeForApp.call(this, tree);
   },
 
   treeForAddon(tree) {

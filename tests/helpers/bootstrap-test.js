@@ -2,6 +2,7 @@ import config from 'dummy/config/environment';
 import test from 'ember-sinon-qunit/test-support/test';
 import { skip } from 'qunit';
 import transitionSupport from 'ember-bootstrap/utils/transition-support';
+import { Promise } from 'rsvp';
 
 const currentBootstrapVersion = parseInt(config.bootstrapVersion);
 
@@ -42,15 +43,23 @@ export function defaultButtonClass() {
 }
 
 export function formFeedbackClass() {
-  return versionDependent('help-block', 'form-control-feedback');
+  return versionDependent('help-block', 'invalid-feedback');
+}
+
+export function formFeedbackElement() {
+  return versionDependent('.form-group', '.form-control');
+}
+
+export function validationSuccessClass() {
+  return versionDependent('has-success', 'is-valid');
 }
 
 export function validationErrorClass() {
-  return versionDependent('has-error', 'has-danger');
+  return versionDependent('has-error', 'is-invalid');
 }
 
 export function validationWarningClass() {
-  return 'has-warning';
+  return versionDependent('has-warning', 'is-warning');
 }
 
 export function placementClassFor(type, placement) {
@@ -71,15 +80,45 @@ export function formHelpTextClass() {
 
 export function accordionClassFor(type) {
   type = type ? `-${type}` : '';
-  return versionDependent(`panel${type}`, `card${type}`);
+  return versionDependent(`panel${type}`, type ? `bg${type}` : 'card');
+}
+
+export function accordionTitleSelector() {
+  return versionDependent('.panel-title', 'h5');
 }
 
 export function accordionItemHeadClass() {
   return versionDependent('panel-heading', 'card-header');
 }
 
+export function dropdownVisibilityElementSelector() {
+  return versionDependent('.dropdown', '.dropdown-menu');
+}
+
 export function accordionItemBodyClass() {
-  return versionDependent('panel-body', 'card-block');
+  return versionDependent('panel-body', 'card-body');
+}
+
+export function tooltipPositionClass(pos) {
+  return versionDependent(pos, `bs-tooltip-${pos}`);
+}
+
+export function popoverPositionClass(pos) {
+  return versionDependent(pos, `bs-popover-${pos}`);
+}
+
+export function tooltipArrowClass() {
+  return versionDependent('tooltip-arrow', 'arrow');
+}
+
+export function isVisible(el) {
+  return !isHidden(el);
+}
+
+export function isHidden(el) {
+  // A bit of an odd test, but taken from https://stackoverflow.com/questions/19669786/check-if-element-is-visible-in-dom
+  // referencing https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetParent
+  return el.offsetParent === null;
 }
 
 export { test };
@@ -98,4 +137,8 @@ export function testRequiringTransitions(name, fn) {
   } else {
     skip(name);
   }
+}
+
+export function delay(delay) {
+  return new Promise((resolve) => setTimeout(resolve, delay));
 }

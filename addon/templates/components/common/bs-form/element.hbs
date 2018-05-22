@@ -5,6 +5,7 @@
   errorsComponent=(component errorsComponent
     messages=validationMessages
     show=showValidationMessages
+    showMultipleErrors=showMultipleErrors
   )
   feedbackIconComponent=(component feedbackIconComponent
     iconName=iconName
@@ -16,6 +17,7 @@
     formElementId=formElementId
     controlType=controlType
     formLayout=formLayout
+    size=size
   )
   helpTextComponent=(if hasHelpText
     (component helpTextComponent
@@ -36,7 +38,7 @@
       disabled=disabled
       readonly=readonly
       required=required
-      size=size
+      controlSize=controlSize
       tabindex=tabindex
       minlength=minlength
       maxlength=maxlength
@@ -59,7 +61,8 @@
       optionLabelPath=optionLabelPath
       ariaDescribedBy=(if hasHelpText ariaDescribedBy)
       onChange=(action "change")
-      validationType=_validationType
+      validationType=validation
+      size=size
   ) as |control|}}
     {{#if hasBlock}}
       {{yield

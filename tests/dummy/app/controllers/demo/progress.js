@@ -1,5 +1,5 @@
+import { not } from '@ember/object/computed';
 import Controller from '@ember/controller';
-import { computed } from '@ember/object';
 
 export default Controller.extend({
   value: 50,
@@ -10,6 +10,7 @@ export default Controller.extend({
   striped: false,
   animate: false,
   roundDigits: 0,
+  /* eslint-disable ember/avoid-leaking-state-in-ember-objects */
   typeChoices: [
     '',
     'success',
@@ -17,5 +18,5 @@ export default Controller.extend({
     'warning',
     'danger'
   ],
-  notStriped: computed.not('striped')
+  notStriped: not('striped')
 });

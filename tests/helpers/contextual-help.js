@@ -1,11 +1,11 @@
 import { assign } from '@ember/polyfills';
-import { find, findAll } from 'ember-native-dom-helpers';
+import { getContext } from '@ember/test-helpers';
 
-export function setupForPositioning() {
-  assign(find('#wrapper').style, {
+export function setupForPositioning(align = 'left') {
+  assign(getContext().element.querySelector('#wrapper').style, {
     position: 'absolute',
     bottom: 0,
-    left: 0,
+    [align]: 0,
     textAlign: 'right',
     width: '300px',
     height: '300px'
@@ -14,8 +14,6 @@ export function setupForPositioning() {
   assign(document.getElementById('ember-testing').style, {
     transform: 'none'
   });
-
-  find('a').style.marginTop = 200;
 }
 
 function offset(el) {
@@ -28,12 +26,13 @@ function offset(el) {
 }
 
 export function assertPositioning(assert, selector = '.tooltip') {
-  assert.equal(findAll(selector).length, 1, 'Element exists.');
+  assert.dom(selector).exists({ count: 1 }, 'Element exists.');
 
-  let tooltip = find(selector);
-  let trigger = find('#target');
-  let marginTop = parseInt(window.getComputedStyle(tooltip).marginTop, 10);
-  let tooltipPos = Math.round(offset(tooltip).top + tooltip.offsetHeight - marginTop);
+  let rootEl = getContext().element;
+  let tooltip = rootEl.querySelector(selector);
+  let trigger = rootEl.querySelector('#target');
+  let margin = -parseInt(window.getComputedStyle(tooltip).marginTop, 10) + parseInt(window.getComputedStyle(tooltip).marginBottom, 10);
+  let tooltipPos = Math.round(offset(tooltip).top + tooltip.offsetHeight + margin);
   let triggerPos = Math.round(offset(trigger).top);
-  assert.ok(Math.abs(tooltipPos - triggerPos) <= 1);
+  assert.ok(Math.abs(triggerPos - tooltipPos) <= 1, `Expected position: ${triggerPos}, actual: ${tooltipPos}`);
 }

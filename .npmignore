@@ -1,6 +1,8 @@
 /.publish
+/.github
 /.idea
 /config/ember-try.js
+/config/release.js
 /dist
 /tests
 /tmp
@@ -9,10 +11,11 @@
 **/.gitkeep
 .editorconfig
 .ember-cli
-.gitignore
 .eslintrc.js
+.gitignore
 .watchmanconfig
 .travis.yml
+.template-lintrc.js
 ember-cli-build.js
 testem.*
 yuidoc.json
@@ -20,3 +23,8 @@ gulpfile.js
 .codeclimate.yml
 /node-tests
 /DEBUG
+
+# ember-try
+.node_modules.ember-try/
+bower.json.ember-try
+package.json.ember-try
